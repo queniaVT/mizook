@@ -27,29 +27,50 @@ const clear = /!clear/i;
 let thinkingz = false;
 let history = [{role: "system", content: syspwompt},];
 
-function tts(input="", whereSend=""){
-	if (input === "!ignore") return;
+function tts(input="", whereSend){
+	if (input.match(/!ignore/i)) return;
+	const maxLen = 180;
 	let out = [];
-	let i = 180;
+	let i = maxLen;
 	let l = 0;
+	let s = false;
 	input += " ";
 	while (l < input.length){
 		if (input.substring(l,l+i) === " ") break;
 		mem = input.substring(l,l+i);
 		i--;
+		// if valid word set found
 		if (mem.substring(mem.length - 1, mem.length) === " "){
+			if (s){
+				s = false;
+				mem = "*" + mem.trimStart(); 
+			}
+			if ((mem.match(/\*/g) || []).length %2===1){
+				s = true;
+				mem = mem.trimEnd() + "*";
+			}
 			out.push(mem);
 			l+i >= input.length ? l = input.length : l += i;
-			i = 180;
+			i = maxLen;
 		}
+		// if word is longer that maxLen
 		if (i===1){
-			out.push(input.substring(l,l+180 > input.length ? input.length-l : l+180));
-			i = 180; l += i;
+			mem = input.substring(l,l+maxLen > input.length ? input.length-l : l+maxLen);
+			if (s){
+				s = false;
+				mem = "*" + mem.trimStart(); 
+			}
+			if ((mem.match(/\*/g) || []).length %2===1){
+				s = true;
+				mem = mem.trimEnd() + "*";
+			}
+			out.push(mem);
+			i = maxLen; l += i;
 		}
 	}
 	console.log(out);
-	for (i in out){whereSend.send({content: out[i], tts: true});}
-	//return;
+	for (i in out){whereSend.send({content: out[i].trim(), tts: true});}
+	//return; // :3
 }
 
 client.on("messageCreate", message => {
