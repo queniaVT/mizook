@@ -14,6 +14,13 @@ const roleMessages = [
 		mapping: {
 			"✅": "1510319032094687503" // councilor
 		}
+	},
+	{
+		channelId: roleChannel,
+		content: "do you wanna talk to mizook? :3",
+		mapping: {
+			"✅": "1510373476144513104" // mizook enjoyer
+		}
 	}
 ];
 
