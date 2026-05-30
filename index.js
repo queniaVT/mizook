@@ -1,4 +1,5 @@
 const {token} = require("./config.json");
+
 const {Client, Events, GatewayIntentBits, SlashCommandBuilder, Partials} = require("discord.js");
 const fetch = require("node-fetch");
 const fs = require("fs").promises;
@@ -11,15 +12,19 @@ const roleMessages = [
 	{
 		channelId: roleChannel,
 		content: "do you want to participate in the council and vote on server changes? (recommended) :3",
-		mapping: {
-			"✅": "1510319032094687503" // councilor
-		}
+		mapping: {"✅": "1510319032094687503"} // councilor
 	},
 	{
 		channelId: roleChannel,
 		content: "do you wanna talk to mizook? :3",
+		mapping: {"✅": "1510373476144513104"} // mizook enjoyer
+	},
+	{
+		channelId: roleChannel,
+		content: "what games do you wanna discuss?\n<:minecraft:1510389340147286099> - minecraft\nyou can suggest more games in the council :3",
 		mapping: {
-			"✅": "1510373476144513104" // mizook enjoyer
+			//"✅": "1510386085010870494"
+			"<:minecraft:1510389340147286099>": "1510386085010870494"
 		}
 	}
 ];
