@@ -172,6 +172,8 @@ function tts(input="", whereSend){
 
 client.on("messageCreate", message => {
 	if (message.author.bot || thinkingz || message.channel.id === channelAlways) return;
+	const trimmed = (message.content || '').trim();
+	if (trimmed && /^https?:\/\/\S+\.(gif|png|jpe?g|webp)(\?\S*)?$/i.test(trimmed)) return;
 	if (crazy.test(message.content)){
 		whereSend = message.channel;
 		tts("crazy? i was crazy once. they locked me in a room, a rubber room, a rubber room with rats, and rats make me crazy.", message.channel)
