@@ -1,13 +1,36 @@
 const {token} = require("./config.json");
-const {Client, Events, GatewayIntentBits, SlashCommandBuilder} = require("discord.js");
+const {Client, Events, GatewayIntentBits, SlashCommandBuilder, Partials} = require("discord.js");
 const fetch = require("node-fetch");
-const server_id = "1504144371912671402";
+const fs = require("fs").promises;
+const path = require("path");
+const serverId = "1504144371912671402";
+
+const storage = path.join(__dirname, 'rrstore.json');
+const roleChannel = "1504146180785836102";
+const roleMessages = [
+	{
+		channelId: roleChannel,
+		content: "do you want to participate in the council and vote on server changes? (recommended) :3",
+		mapping: {
+			"✅": "1510319032094687503" // councilor
+		}
+	}
+];
 
 const model = "tinyllama"; // options: tinyllama (lobotomymaxxing), llama2 (cpu-usagemaxxing)
 const ollama = "http://127.0.0.1:11435";
 const channelAlways = "1508509355740233769";
 
-const client = new Client({intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]});
+const client = new Client({
+	intents: [
+		GatewayIntentBits.Guilds,
+		GatewayIntentBits.GuildMembers,
+		GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.GuildMessageReactions,
+		GatewayIntentBits.MessageContent
+	],
+	partials: [Partials.Message, Partials.Channel, Partials.Reaction]
+});
 
 // project structure doesnt exist here. this is pure chaos. if it works, dont touch it.; fuck off ill touch it;
 
@@ -26,6 +49,73 @@ const clear = /!clear/i;
 
 let thinkingz = false;
 let history = [{role: "system", content: syspwompt},];
+
+let store = {}; // { guildId: { messageId: { emoji: roleId, ... }, ... }, ... }
+
+async function loadStore() {
+	try { store = JSON.parse(await fs.readFile(storage, 'utf8')); } catch { store = {}; }
+}
+async function saveStore() { await fs.writeFile(storage, JSON.stringify(store, null, 2)); }
+
+function emojiKeyFromEmojiObj(e) {
+	return e.id ? `<:${e.name}:${e.id}>` : e.name;
+}
+
+async function ensurePredefinedMessages() {
+	for (const def of roleMessages) {
+		const channel = await client.channels.fetch(def.channelId).catch(()=>null);
+		if (!channel || !channel.isTextBased()) continue;
+
+		// Try to find an existing bot message with same content in that channel
+		const fetched = await channel.messages.fetch({ limit: 50 }).catch(()=>null);
+		let msg = fetched?.find(m => m.author.id === client.user.id && m.content === def.content);
+
+		if (!msg) {
+			msg = await channel.send(def.content);
+ 			// react with each emoji
+			for (const emo of Object.keys(def.mapping)) {
+				try { await msg.react(emo); } catch (err) { console.error('react failed', emo, err); }
+			}
+		}
+
+		// Save mapping for this message
+		store[msg.guild.id] ??= {};
+		store[msg.guild.id][msg.id] = { ...def.mapping };
+	}
+	await saveStore();
+}
+
+async function handleRoleChange(reaction, user, add) {
+	if (user.bot) return;
+	if (reaction.partial) {
+		try { await reaction.fetch(); } catch { return; }
+	}
+	const guild = reaction.message.guild;
+	if (!guild) return;
+	const gstore = store[guild.id];
+	if (!gstore) return;
+	const msgMap = gstore[reaction.message.id];
+	if (!msgMap) return;
+	const key = reaction.emoji.id ? `<:${reaction.emoji.name}:${reaction.emoji.id}>` : reaction.emoji.name;
+	const roleId = msgMap[key];
+	if (!roleId) return;
+	const member = await guild.members.fetch(user.id).catch(()=>null);
+	if (!member) return;
+	try {
+		if (add) await member.roles.add(roleId);
+		else await member.roles.remove(roleId);
+	} catch (err) {
+		console.error('role change error', err);
+	}
+}
+
+client.on('messageReactionAdd', (r,u)=> handleRoleChange(r,u,true));
+client.on('messageReactionRemove', (r,u)=> handleRoleChange(r,u,false));
+
+client.once("clientReady", async () => {
+	await loadStore();
+	await ensurePredefinedMessages();
+});
 
 function tts(input="", whereSend){
 	if (input.match(/!ignore/i)) return;
@@ -80,7 +170,7 @@ client.on("messageCreate", message => {
 		tts("crazy? i was crazy once. they locked me in a room, a rubber room, a rubber room with rats, and rats make me crazy.", message.channel)
 	}
 	if (j_b.test(message.content)){
-		tts("p..p…lease… c-censor.. *sighs* … ahem!!… a-… *starts crying* ….. *sniff* j-…. J….. j… ARGH! *screams in agony* i-i… cant!… … *sighs*…. f-fine!! j-j-j-j…. J\\*B! *starts crying* and *faints while having seizures* oh! thats not... men pmo! 💜 i choose the ✨BEAR✨ sorry, but zahide won this trend! 💜 im just a girl 🎀 hope this helps! ✌️🙏 user25526345104761 literally predicted all ts🙏😭 IS THAT HYPERPIGMENTATION💜💜🙏 WHO IS THIS DIVAAAAA💜🎀💜🙏💜🙏 DID SHE SURVIVE💜💜💜🎀🙏🙏😭 MAMA A GIRL BEHIND YOU🙏💜🎀😭 TUNG TUNG TUNG SAHUR💜💜🎀 work, employment, bills, j\\*b, this but not ts, walk, life, grass, t\\*x, toothbrush, soap, employ, employed, br\\*sh, fresh, hygienic, hired, labor, wage, clean, shampoo, bathe, wipe, cleansed, sponge, deodorant, contract, exercise, healthy, hire, hiring, career, chores, organized, old spice, toothpaste, dishes, vegetables, fresh air, working, dove, work, employment, bills, j\\*b, this but not ts, walk, life, grass, t\\*x, toothbrush, soap, employ, employed, br\\*sh, fresh, hygienic, hired, labor, wage, clean, shampoo, bathe, wipe, cleansed, sponge, deodorant, contract, exercise, healthy, hire, hiring, career, chores, organized, old spice, toothpaste, dishes, vegetables, fresh air, working, dovework, employment, bills, j\\*b those who know:💀💀💀💀💀💀💀💀💀💀💀BOIII TS IS SO TUFF😂🫱🫱🫱THE FOG IS COMING😂😂😂HELP ITS RIPPING OFF MY SKIN😂😂😂 wait, is this a MANGO MANGO😈 reference 😱😱 chat! this is a MANGO MANGO😈 reference 🤣🤣🤣. boi, you won the Internet meme of the day 😂🫱. only the Balkans with noradrenaline will understand THOSE WHO KNOW💀💀💀💀 MANGO MANGO MANGO🥭 🥭 🥭TUNG TUNG TUNG SAHUR BOIII😂😂😂TS IS SO TUFF BOIII🥶🥶🥶🥶🔥🔥🔥🥵", message.channel);
+		tts("p..p…lease… c-censor.. *sighs* … ahem!!… a-… *starts crying* ….. *sniff* j-…. J….. j… ARGH! *screams in agony* i-i… cant!… … *sighs*…. f-fine!! j-j-j-j…. J\\*B! *starts crying and faints while having seizures* oh! thats not... men pmo! 💜 i choose the ✨BEAR✨ sorry, but zahide won this trend! 💜 im just a girl 🎀 hope this helps! ✌️🙏 user25526345104761 literally predicted all ts🙏😭 IS THAT HYPERPIGMENTATION💜💜🙏 WHO IS THIS DIVAAAAA💜🎀💜🙏💜🙏 DID SHE SURVIVE💜💜💜🎀🙏🙏😭 MAMA A GIRL BEHIND YOU🙏💜🎀😭 TUNG TUNG TUNG SAHUR💜💜🎀 work, employment, bills, j\\*b, this but not ts, walk, life, grass, t\\*x, toothbrush, soap, employ, employed, br\\*sh, fresh, hygienic, hired, labor, wage, clean, shampoo, bathe, wipe, cleansed, sponge, deodorant, contract, exercise, healthy, hire, hiring, career, chores, organized, old spice, toothpaste, dishes, vegetables, fresh air, working, dove, work, employment, bills, j\\*b, this but not ts, walk, life, grass, t\\*x, toothbrush, soap, employ, employed, br\\*sh, fresh, hygienic, hired, labor, wage, clean, shampoo, bathe, wipe, cleansed, sponge, deodorant, contract, exercise, healthy, hire, hiring, career, chores, organized, old spice, toothpaste, dishes, vegetables, fresh air, working, dovework, employment, bills, j\\*b those who know:💀💀💀💀💀💀💀💀💀💀💀BOIII TS IS SO TUFF😂🫱🫱🫱THE FOG IS COMING😂😂😂HELP ITS RIPPING OFF MY SKIN😂😂😂 wait, is this a MANGO MANGO😈 reference 😱😱 chat! this is a MANGO MANGO😈 reference 🤣🤣🤣. boi, you won the Internet meme of the day 😂🫱. only the Balkans with noradrenaline will understand THOSE WHO KNOW💀💀💀💀 MANGO MANGO MANGO🥭 🥭 🥭TUNG TUNG TUNG SAHUR BOIII😂😂😂TS IS SO TUFF BOIII🥶🥶🥶🥶🔥🔥🔥🥵", message.channel);
 	}	
 	if (six.test(message.content) && seven.test(message.content)){
 		tts("HOLY MOTHER FUCKNG SHT, ARE THOSE THE NUMBERS 6 AND 7?!?!?!😱😳😱😳😳😱⁉️😱⁉️‼️😱😳😱⁉️😱😳😱😳⁉️😱😳😱⁉️😱‼️😱😳😱6️⃣7️⃣6️⃣7️⃣6️⃣7️⃣6️⃣7️⃣ ATTENTION, 6️⃣7️⃣ SPOTTED, ATTENTION 67 SPOTTED, THIS IS NOT A DRILL, I REPEAT, THIS IS NOT A DRILL DEPLOY 6️⃣7️⃣ PROTOCOL /INITIATING 67 MODE... %67data... &programs x67&... 6767676767676️⃣7️⃣6️⃣7️⃣6️⃣7️⃣... I WILL SING THE 6️⃣ 7️⃣ SONG AND YOU WILL SING ALONG, WE WILL SING THE 6️⃣ 7️⃣ SONG AND YOU WILL SING ALONG, YOU WILL SING THE 6️⃣ 7️⃣ SONG AND WE WILL SING ALONG 6️⃣🤚😁✋️7️⃣‼️‼️‼️‼️‼️‼️", message.channel);
@@ -159,7 +249,7 @@ client.once("clientReady", () => {
 		.setName('hi')
 		.setDescription('say hi to mizook. this command exists only to test the /tts function');
 
-	client.application.commands.create(hi, server_id);
+	client.application.commands.create(hi, serverId);
 });
 
 client.on(Events.InteractionCreate, interaction => {
