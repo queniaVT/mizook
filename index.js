@@ -23,7 +23,6 @@ const roleMessages = [
 		channelId: roleChannel,
 		content: "what games do you wanna discuss?\n<:minecraft:1510389340147286099> - minecraft\nyou can suggest more games in the council :3",
 		mapping: {
-			//"✅": "1510386085010870494"
 			"<:minecraft:1510389340147286099>": "1510386085010870494"
 		}
 	}
@@ -178,7 +177,9 @@ function tts(input="", whereSend){
 client.on("messageCreate", message => {
 	if (message.author.bot || thinkingz || message.channel.id === channelAlways) return;
 	const trimmed = (message.content || '').trim();
-	if (trimmed && /^https?:\/\/\S+\.(gif|png|jpe?g|webp)(\?\S*)?$/i.test(trimmed)) return;
+	if (/^https?:\/\/\S+\.(gif|png|jpe?g|webp)(\?\S*)?$/i.test(trimmed)) return;
+	if (/^https?:\/\/(?:www\.)?(tenor\.com|giphy\.com)\//i.test(trimmed)) return;
+
 	if (crazy.test(message.content)){
 		whereSend = message.channel;
 		tts("crazy? i was crazy once. they locked me in a room, a rubber room, a rubber room with rats, and rats make me crazy.", message.channel)
