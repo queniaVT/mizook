@@ -196,8 +196,8 @@ client.on("messageCreate", message => {
 client.on('messageCreate', async (message) => {
 	try {
 		if (message.author.bot) return;
-		if (/^https?:\/\/\S+\.(gif|png|jpe?g|webp)(\?\S*)?$/i.test(trimmed)) return;
-		if (/^https?:\/\/(?:www\.)?(tenor\.com|giphy\.com)\//i.test(trimmed)) return;
+		//if (/^https?:\/\/\S+\.(gif|png|jpe?g|webp)(\?\S*)?$/i.test(trimmed)) return; // idk y but it fucks up mizooks brainz so no touch dis
+		//if (/^https?:\/\/(?:www\.)?(tenor\.com|giphy\.com)\//i.test(trimmed)) return;
 		if (message.channel.id !== channelAlways || ignore.test(message.content) || ignr.test(message.content)) return;
 		if (clear.test(message.content)){
 			history = [{role: "system", content: syspwompt},];
