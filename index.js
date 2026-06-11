@@ -28,7 +28,10 @@ const roleMessages = [
 	}
 ];
 
-const model = "tinyllama"; // options: tinyllama (lobotomymaxxing), llama2 (cpu-usagemaxxing)
+// llm options
+// default llm = llmOptions[0]
+// options: lobotomymaxxing, cpu-usagemaxxing
+const llmOptions = ["tinyllama", "llama2"];
 const ollama = "http://127.0.0.1:11435";
 const channelAlways = "1508509355740233769";
 
@@ -118,6 +121,15 @@ async function handleRoleChange(reaction, user, add) {
 	} catch (err) {
 		console.error('role change error', err);
 	}
+}
+
+function chooseLLM(input){
+	let llm = llmOptions[0];
+	let match = input.match(/!llm=([a-zA-Z0-9_-]+)/);
+	if (match){
+		if (llmOptions.includes(match[0])){llm = match[0];}
+	}
+	return llm;
 }
 
 client.on('messageReactionAdd', (r,u)=> handleRoleChange(r,u,true));
@@ -220,7 +232,7 @@ client.on('messageCreate', async (message) => {
 
 		// pwompt expecedd by lobotomized llm
 		const payload = {
-			model: model,
+			model: chooseLLM(message.content),
 			messages: history,
 			temperature: 1,
 			// optionally set hottness, max_wurrds, etc. depending on lobotomy type
