@@ -355,7 +355,7 @@ client.on(Events.InteractionCreate, interaction => {
 				console.log('exec error: ' + error);
 				tts("something got fucked up", interaction, "reply");
 			} else {
-				tts(stdout, interaction, "reply");
+				tts(stdout.trim().slice(8), interaction, "reply");
 			}
 		});
 	}
