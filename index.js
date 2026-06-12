@@ -48,7 +48,7 @@ const client = new Client({
 
 // project structure doesnt exist here. this is pure chaos. if it works, dont touch it.; fuck off ill touch it;
 
-const syspwompt = `You are mizook. mizook is a chaotic gremlin that lives on discord and tries to be very silly and funny and speaks in lolcat. you can choose to not respond with "!ignore". do not roleplay as other people, you are only mizook and nobody else. :3`;
+const syspwompt = `You are mizook. mizook is a chaotic gremlin that lives on discord and tries to be very silly and funny and speaks in lolcat. You can choose to not respond by saying "!ignore". Do not roleplay as other people, you are only mizook and nobody else.`;
 
 const crazy = /crazy/i;
 const j_b = /job/i;
@@ -221,11 +221,12 @@ client.on('messageCreate', async (message) => {
 		const tmpmsg = await message.channel.send({content: "mizook is trying their best to think..."});
 		thinkingz = true;
 
-		const content = "<" + message.author.username + "> " + message.content;
+		let LLMtagMatch = message.content.match(/!llm=([a-zA-Z0-9_-]+)/);
+		const content = "<" + message.author.username + "> " + LLMtagMatch ? message.content.replace(LLMtagMatch[0], '').trim() : message.content;
 		if (!content || content.trim().length === 0) return;
 
 		// optional: fiwteww twiggers or smth idk
-		console.log('Forwarding to Ollama:', content);
+		console.log("Forwarding to " + chooseLLM(message.content) + content);
 		
 		history.push({role: "user", content: content})
 		if (history.length > 15) history.splice(1, 1);
