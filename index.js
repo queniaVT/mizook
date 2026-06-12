@@ -351,7 +351,7 @@ client.on(Events.InteractionCreate, interaction => {
 					}
 				});
 			} else {
-				tts("cannot stop servurr, " + stdout + " people online");
+				tts("cannot stop servurr, " + stdout + " people online", interaction, "reply");
 			}
 		});
 	}
