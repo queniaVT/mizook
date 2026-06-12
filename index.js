@@ -310,7 +310,7 @@ client.once("clientReady", () => {
 	
 	const mcStatus = new SlashCommandBuilder()
 		.setName("status")
-		.setDescription("checks if the minecraft servurr is running"); //ts is gonna be hell to code
+		.setDescription("checks if the minecraft servurr is running");
 	client.application.commands.create(mcStatus, serverId);
 });
 
@@ -354,7 +354,7 @@ client.on(Events.InteractionCreate, interaction => {
 					}
 				});
 			} else {
-				tts("cannot stop servurr, " + stdout + " people online", interaction, "reply");
+				tts("cannot stop servurr, " + stdout.trim() + " people online", interaction, "reply");
 			}
 		});
 	}
@@ -364,7 +364,15 @@ client.on(Events.InteractionCreate, interaction => {
 				console.log('exec error: ' + error);
 				tts("something got fucked up", interaction, "reply");
 			} else {
-				tts(stdout.trim().slice(8), interaction, "reply");
+				const out = stdout.trim().slice(8);
+				exec("/run/current-system/sw/bin/mcrcon -H localhost -P 25575 -p mcservurrpasswd list | sed -n 's/.*: //p'", (error, stdout, stderr) => {
+					if (error) {
+						console.log("exec error: " + error);
+						tts("something got fucked up", interaction, "reply");
+					} else {
+						tts(out + "players online:\n" + stdout, interaction, "reply");
+					}
+				});
 			}
 		});
 	}
