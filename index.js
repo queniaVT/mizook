@@ -310,7 +310,8 @@ client.once("clientReady", () => {
 	
 	const mcStatus = new SlashCommandBuilder()
 		.setName("status")
-		.setDescription("checks if the minecraft servurr is running") //ts is gonna be hell to code
+		.setDescription("checks if the minecraft servurr is running"); //ts is gonna be hell to code
+	client.application.commands.create(mcStatus, serverId);
 });
 
 client.on(Events.InteractionCreate, interaction => {
