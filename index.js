@@ -222,11 +222,11 @@ client.on('messageCreate', async (message) => {
 		thinkingz = true;
 
 		let LLMtagMatch = message.content.match(/!llm=([a-zA-Z0-9_-]+)/);
-		const content = "<" + message.author.username + "> " + LLMtagMatch ? message.content.replace(LLMtagMatch[0], '').trim() : message.content;
+		const content = "<" + message.author.username + "> " + message.content.replace(LLMtagMatch[0], '').trim();
 		if (!content || content.trim().length === 0) return;
 
 		// optional: fiwteww twiggers or smth idk
-		console.log("Forwarding to " + chooseLLM(message.content) + content);
+		console.log("Forwarding to " + chooseLLM(message.content) + ": " + content);
 		
 		history.push({role: "user", content: content})
 		if (history.length > 15) history.splice(1, 1);
@@ -236,6 +236,7 @@ client.on('messageCreate', async (message) => {
 			model: chooseLLM(message.content),
 			messages: history,
 			temperature: 1,
+			max_tokens: 1024,
 			// optionally set hottness, max_wurrds, etc. depending on lobotomy type
 		};
 		console.log(history);
