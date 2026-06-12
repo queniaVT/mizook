@@ -356,16 +356,14 @@ client.on(Events.InteractionCreate, interaction => {
 		tts("stoppin teh servurr...", interaction, "reply");
 	}
 	if(interaction.commandName === "status") {
-        exec("sudo systemctl status mcservurr",
-            function (error, stdout, stderr) {
-                console.log('stdout: ' + stdout);
-                console.log('stderr: ' + stderr);
-                if (error !== null) {
-                    console.log('exec error: ' + error);
-					tts("something got fucked up", interaction, "reply");
-                }
-            });
-		tts("idk how to code dis yet", interaction, "reply");
+		exec("sudo /run/current-system/sw/bin/systemctl status mcservurr | head -3 | tail -1",  (error, stdout, stderr) => {
+			if (err) {
+				console.log('exec error: ' + err);
+				tts("something got fucked up: " + err, interaction, "reply");
+				} else {
+					tts(stdout, interaction, "reply");
+				}
+			}
 	}
 });
 
