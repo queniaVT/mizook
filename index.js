@@ -360,10 +360,10 @@ client.on(Events.InteractionCreate, interaction => {
 			if (err) {
 				console.log('exec error: ' + err);
 				tts("something got fucked up: " + err, interaction, "reply");
-				} else {
+			} else {
 					tts(stdout, interaction, "reply");
-				}
 			}
+		}
 	}
 });
 
