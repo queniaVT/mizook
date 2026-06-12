@@ -341,6 +341,7 @@ client.on(Events.InteractionCreate, interaction => {
 	}
 	if(interaction.commandName === "stop") { // todo: add check if no players online
 		exec("mcrcon -p mcservurrpasswd list | grep -oP 'There are \K\d+'", (error, stdout, stderr) => {
+			console.log(stdout);
 			if (stdout = "0") {
 				exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl stop mcservurr",  (error, stdout, stderr) => {
 					if (error) {
