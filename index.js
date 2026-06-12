@@ -358,7 +358,7 @@ client.on(Events.InteractionCreate, interaction => {
 		tts("stoppin teh servurr...", interaction, "reply");
 	}
 	if(interaction.commandName === "status") {
-		exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl status mcservurr | head -3 | tail -1",  (error, stdout, stderr) => {
+		exec("sudo /run/current-system/sw/bin/systemctl status mcservurr | head -3 | tail -1",  (error, stdout, stderr) => {
 			console.log("status cmd recieved :3");
 			if (error) {
 				console.log('exec error: ' + error);
