@@ -320,44 +320,37 @@ client.on(Events.InteractionCreate, interaction => {
 		tts("HAIIII :3 i'm mizook, you should be able to hear me say this message", interaction, "reply");
 	}
 	if(interaction.commandName === "start") {
-		exec("sudo systemctl start mcservurr",
-			function (error, stdout, stderr) {
-				console.log('stdout: ' + stdout);
-				console.log('stderr: ' + stderr);
-				if (error !== null) {
-					console.log('exec error: ' + error);
-					tts("something got fucked up", interaction, "reply");
-				}
-			});
-		tts("startin teh servurr...", interaction, "reply");
+        exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl start mcservurr",  (error, stdout, stderr) => {
+            if (error) {
+                console.log('exec error: ' + error);
+                tts("something got fucked up", interaction, "reply");
+            } else {
+                tts("startin teh servurr...", interaction, "reply");
+            }
+        });
 	}
 	if(interaction.commandName === "restart") {
-        exec("sudo systemctl restart mcservurr",
-            function (error, stdout, stderr) {
-                console.log('stdout: ' + stdout);
-                console.log('stderr: ' + stderr);
-                if (error !== null) {
-                    console.log('exec error: ' + error);
-					tts("something got fucked up", interaction, "reply");
-                }
-            });
-		tts("restartin teh servurr...", interaction, "reply");
+        exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl restart mcservurr",  (error, stdout, stderr) => {
+            if (error) {
+                console.log('exec error: ' + error);
+                tts("something got fucked up", interaction, "reply");
+            } else {
+                tts("restartin teh servurr...", interaction, "reply");
+            }
+        });
 	}
 	if(interaction.commandName === "stop") { // todo: add check if no players online
-        exec("sudo systemctl stop mcservurr",
-            function (error, stdout, stderr) {
-                console.log('stdout: ' + stdout);
-                console.log('stderr: ' + stderr);
-                if (error !== null) {
-                    console.log('exec error: ' + error);
-					tts("something got fucked up", interaction, "reply");
-                }
-            });
-		tts("stoppin teh servurr...", interaction, "reply");
+        exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl stop mcservurr",  (error, stdout, stderr) => {
+            if (error) {
+                console.log('exec error: ' + error);
+                tts("something got fucked up", interaction, "reply");
+            } else {
+                tts("stoppin teh servurr...", interaction, "reply");
+            }
+        });
 	}
 	if(interaction.commandName === "status") {
 		exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl status mcservurr | head -3 | tail -1",  (error, stdout, stderr) => {
-			console.log("status cmd recieved :3");
 			if (error) {
 				console.log('exec error: ' + error);
 				tts("something got fucked up", interaction, "reply");
