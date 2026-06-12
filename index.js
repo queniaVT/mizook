@@ -189,8 +189,6 @@ function tts(input="", whereSend, sendOrReply=""){
 			whereSend.reply({content, tts: true});
 		} else if (sendOrReply === "send" && whereSend.send) {
 			whereSend.send({content, tts: true});
-		} else if (sendOrReply === "deferReply" && whereSend.deferReply) { 
-			whereSend.send({content, tts: true});
 		} else {
 			if (whereSend.reply) whereSend.reply({ content, tts: true });
 			else if (whereSend.send) whereSend.send({ content, tts: true });
@@ -362,13 +360,9 @@ client.on(Events.InteractionCreate, interaction => {
 			console.log("status cmd recieved :3");
 			if (error) {
 				console.log('exec error: ' + error);
-				console.log("error out: " + stdout);
-				console.log("error err: " + stderr);
-				tts("something got fucked up", interaction, "deferReply");
+				tts("something got fucked up", interaction, "reply");
 			} else {
-				console.log("out: " + stdout);
-				console.log("err: " + stderr);
-				tts(stdout, interaction, "deferReply");
+				tts(stdout, interaction, "reply");
 			}
 		});
 	}
