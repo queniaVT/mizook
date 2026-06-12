@@ -357,6 +357,7 @@ client.on(Events.InteractionCreate, interaction => {
 	}
 	if(interaction.commandName === "status") {
 		exec("sudo /run/current-system/sw/bin/systemctl status mcservurr | head -3 | tail -1",  (error, stdout, stderr) => {
+			console.log("status cmd recieved :3");
 			if (error) {
 				console.log('exec error: ' + error);
 				tts("something got fucked up: " + error, interaction, "reply");
