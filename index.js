@@ -370,7 +370,7 @@ client.on(Events.InteractionCreate, interaction => {
 						console.log("exec error: " + error);
 						tts("something got fucked up", interaction, "reply");
 					} else {
-						tts(out + "players online:\n" + stdout, interaction, "reply");
+						tts(out + "\n" + "players online:\n" + stdout, interaction, "reply");
 					}
 				});
 			}
