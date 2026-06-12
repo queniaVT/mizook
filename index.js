@@ -221,12 +221,13 @@ client.on('messageCreate', async (message) => {
 		const tmpmsg = await message.channel.send({content: "mizook is trying their best to think..."});
 		thinkingz = true;
 
+		let content = "";
 		let llm = chooseLLM(message.content);
 		let LLMtagMatch = message.content.match(/!llm=([a-zA-Z0-9_-]+)/);
 		if (LLMtagMatch){
-			const content = "<" + message.author.username + "> " + message.content.replace(LLMtagMatch[0], '').trim();
+			content = "<" + message.author.username + "> " + message.content.replace(LLMtagMatch[0], '').trim();
 		} else {
-			const content = "<" + message.author.username + "> " + message.content;
+			content = "<" + message.author.username + "> " + message.content;
 		}
 		if (!content || content.trim().length === 0) return;
 		
