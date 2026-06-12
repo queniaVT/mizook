@@ -362,12 +362,12 @@ client.on(Events.InteractionCreate, interaction => {
 			console.log("status cmd recieved :3");
 			if (error) {
 				console.log('exec error: ' + error);
-				console.log(stdout);
-				console.log(stderr);
+				console.log("error out: " + stdout);
+				console.log("error err: " + stderr);
 				tts("something got fucked up", interaction, "deferReply");
 			} else {
-				console.log(stdout);
-				console.log(stderr);
+				console.log("out: " + stdout);
+				console.log("err: " + stderr);
 				tts(stderr, interaction, "deferReply");
 			}
 		});
