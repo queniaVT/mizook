@@ -360,11 +360,12 @@ client.on(Events.InteractionCreate, interaction => {
 			console.log("status cmd recieved :3");
 			if (error) {
 				console.log('exec error: ' + error);
-				tts("something got fucked up: " + error, interaction, "reply");
-			} else {
-				const out = stdout;
+				const out = stderr || stdout;
 				console.log(out);
-				tts(out, interaction, "reply");
+				tts("something got fucked up", interaction, "reply");
+			} else {
+				console.log(stdout);
+				tts(stdout, interaction, "reply");
 			}
 		});
 	}
