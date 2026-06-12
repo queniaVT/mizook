@@ -368,7 +368,7 @@ client.on(Events.InteractionCreate, interaction => {
 			} else {
 				console.log(stdout);
 				console.log(stderr);
-				tts(stdout, interaction, "deferReply");
+				tts(stderr, interaction, "deferReply");
 			}
 		});
 	}
