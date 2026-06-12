@@ -340,7 +340,7 @@ client.on(Events.InteractionCreate, interaction => {
         });
 	}
 	if(interaction.commandName === "stop") {
-		exec("/run/current-system/sw/bin/mcrcon -H localhost -P 25575 -p mcservurrpasswd list | grep -oP 'There are \K\d+'", (error, stdout, stderr) => {
+		exec("/run/current-system/sw/bin/mcrcon -H localhost -P 25575 -p mcservurrpasswd list | grep -oP 'There are \\K\\d+'", (error, stdout, stderr) => {
 			if (error) {
 				console.log("exec error: " + error);
 				tts("something got fucked up", interaction, "reply");
