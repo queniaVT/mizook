@@ -186,9 +186,11 @@ function tts(input="", whereSend, sendOrReply=""){
 	for (const i in out) {
 		const content = out[i].trim();
 		if (sendOrReply === "reply" && whereSend.reply) {
-			whereSend.reply({ content, tts: true });
+			whereSend.reply({content, tts: true});
 		} else if (sendOrReply === "send" && whereSend.send) {
-			whereSend.send({ content, tts: true });
+			whereSend.send({content, tts: true});
+		} else if (sendOrReply === "deferReply" && whereSend.deferReply) { 
+			whereSend.send({content, tts: true});
 		} else {
 			if (whereSend.reply) whereSend.reply({ content, tts: true });
 			else if (whereSend.send) whereSend.send({ content, tts: true });
@@ -362,10 +364,10 @@ client.on(Events.InteractionCreate, interaction => {
 				console.log('exec error: ' + error);
 				const out = stderr || stdout;
 				console.log(out);
-				tts("something got fucked up", interaction, "reply");
+				tts("something got fucked up", interaction, "deferReply");
 			} else {
 				console.log(stdout);
-				tts(stdout, interaction, "reply");
+				tts(stdout, interaction, "deferReply");
 			}
 		});
 	}
