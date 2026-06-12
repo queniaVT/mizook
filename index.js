@@ -340,14 +340,20 @@ client.on(Events.InteractionCreate, interaction => {
         });
 	}
 	if(interaction.commandName === "stop") { // todo: add check if no players online
-        exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl stop mcservurr",  (error, stdout, stderr) => {
-            if (error) {
-                console.log('exec error: ' + error);
-                tts("something got fucked up", interaction, "reply");
-            } else {
-                tts("stoppin teh servurr...", interaction, "reply");
-            }
-        });
+		exec("mcrcon -p mcservurrpasswd list | grep -oP 'There are \K\d+'", (error, stdout, stderr) => {
+			if (stdout = "0") {
+				exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl stop mcservurr",  (error, stdout, stderr) => {
+					if (error) {
+						console.log('exec error: ' + error);
+						tts("something got fucked up", interaction, "reply");
+					} else {
+						tts("stoppin teh servurr...", interaction, "reply");
+					}
+				});
+			} else {
+				tts("cannot stop servurr, " + stdout + " people online");
+			}
+		});
 	}
 	if(interaction.commandName === "status") {
 		exec("/run/wrappers/bin/sudo /run/current-system/sw/bin/systemctl status mcservurr | head -3 | tail -1",  (error, stdout, stderr) => {
