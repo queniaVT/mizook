@@ -361,8 +361,8 @@ client.on(Events.InteractionCreate, interaction => {
 				console.log('exec error: ' + err);
 				tts("something got fucked up: " + err, interaction, "reply");
 			} else {
-					const out = stdout;
-					tts(out, interaction, "reply");
+				const out = stdout;
+				tts(out, interaction, "reply");
 			}
 		}
 	}
