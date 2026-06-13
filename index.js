@@ -274,7 +274,7 @@ client.on('messageCreate', async (message) => {
 
 		// const tmpmsg == await message.channel.send({content: "mizook is thinking..."});;;;
 		history.push({role: "user", content: "<mizook(you)> " + reply});
-		await tts(reply, message.channel, send);
+		await tts(reply, message.channel, "send");
 		tmpmsg.delete().catch(console.error);
 		thinkingz = false;
 
