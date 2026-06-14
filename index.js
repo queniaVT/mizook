@@ -1,4 +1,4 @@
-const stripAnsi = require('strip-ansi');
+const stripAnsi = require('strip-ansi').default;
 const {token} = require("./config.json");
 
 const {Client, Events, GatewayIntentBits, SlashCommandBuilder, Partials} = require("discord.js");
