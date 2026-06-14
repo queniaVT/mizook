@@ -1,3 +1,4 @@
+import stripAnsi from 'strip-ansi';
 const {token} = require("./config.json");
 
 const {Client, Events, GatewayIntentBits, SlashCommandBuilder, Partials} = require("discord.js");
@@ -371,7 +372,7 @@ client.on(Events.InteractionCreate, interaction => {
 						console.log("exec error: " + error);
 						tts("something got fucked up", interaction, "reply");
 					} else {
-						tts(out + "\n" + "players online:\n" + stdout, interaction, "reply");
+						tts(out + "\nplayers online:\n" + stripAnsi(stdout), interaction, "reply");
 					}
 				});
 			}
