@@ -27,6 +27,16 @@ const roleMessages = [
 		mapping: {
 			"<:minecraft:1510389340147286099>": "1510386085010870494"
 		}
+	},
+	{
+		channelId: roleChannel,
+		content: "u can chooze ur labelz heer\n<:bisexual:1519787323053834241> - bisexual\n<:femboy:1519786693539008555> - femboy\n<:lesbian:1519786959927513269> - lesbian\n<:transgender:1519787105084243997> - transgender\nif ur label iznt heer u can suggest it in da council :3",
+		mapping: {
+			"<:bisexual:1519787323053834241>": "1519788043588993116",
+			"<:femboy:1519786693539008555>": "1516071248206102681",
+			"<:lesbian:1519786959927513269>": "1519787793260482672",
+			"<:transgender:1519787105084243997>": "1519788311324004423"
+		}
 	}
 ];
 

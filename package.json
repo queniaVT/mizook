@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "discord": "^0.8.2",
     "discord.js": "^14.26.4",
     "node-fetch": "^2.7.0"
   }
