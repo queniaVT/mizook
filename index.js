@@ -14,7 +14,7 @@ const roleMessages = [
 	{
 		channelId: roleChannel,
 		content: "do you want to participate in the council and vote on server changes? (recommended) :3",
-		mapping: {"✅": "1510319032094687503"} // councilor
+		mapping: {"✅": "1510319032094687503"} // councilor     
 	},
 	{
 		channelId: roleChannel,
