@@ -93,9 +93,10 @@ async fn main() {
 								let players = output.split_once("online:").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
 								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
 							} else {
+								println!("debug print statements cuz its not fucking working i hate this");
 								let fluxer2mc_msg = mcrcon(&["tellraw", "@a", &format!("<{username}> {content} :3")]).await;
 								match fluxer2mc_msg {
-									Ok(_output) => {}
+									Ok(_output) => {println!("iz ok");}
 									Err(error) => {println!("failed forwarding msg from fluxer to minecraft: {error}");}
 								}
 							}
