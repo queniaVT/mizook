@@ -93,11 +93,13 @@ async fn main() {
 								let players = output.split_once("online:").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
 								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
 							} else {
-								let fluxer2mc_msg = mcrcon(&["tellraw", "@a", &serde_json::json!({"text": format!("<{username}> {content} :3")}).to_string()]).await;
-								println!("forwarding from fluxer2mc: {}", serde_json::json!({"text": "<{username}> {content} :3"}));
+								let message = format!("<{username}> {content} :3");
+								let json = serde_json::json!({"text": message});
+								println!("forwarding fluxer2mc: {json}");
+								let fluxer2mc_msg = mcrcon(&["tellraw", "@a", &json.to_string()]).await;
 								match fluxer2mc_msg {
-									Ok(_output) => {}
-									Err(error) => {println!("failed forwarding msg from fluxer to minecraft: {error}");}
+									Ok(output) => println!("mcrcon succeeded: {output}"),
+									Err(error) => println!("failed forwarding msg from fluxer to minecraft: {error}"),
 								}
 							}
 						} else {
