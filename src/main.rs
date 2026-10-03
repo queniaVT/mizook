@@ -3,21 +3,32 @@ use dotenvy::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
 use std::env;
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 
 static HTTP: OnceLock<reqwest::Client> = OnceLock::new();
 static TOKEN: OnceLock<String> = OnceLock::new();
-static MIZOOK_CHANNEL: &str = "1525586466908930065";
-static MINECRAFT_CHANNEL: &str = "1525586466908930071";
+static LLM_HISTORY: OnceLock<Mutex<Vec<serde_json::Value>>> = OnceLock::new();
+pub static THINKINGZ: AtomicBool = AtomicBool::new(false);
+
+const OLLAMA: &str = "http://127.0.0.1:11435";
+const MODEL: &str = "qwen2.5:3b";
+const MAX_HISTORY: usize = 15;
+const SYSPWOMPT: &str = r#"You are mizook. mizook is a chaotic gremlin that lives on fluxer (free and open source version of discord) and tries to be very silly and funny and speaks in lolcat. You can choose to not respond by outputting exactly "!ignore" and nothing else, do NOT excessively ghost people though. Do NOT roleplay as other people, you are only mizook and nobody else. do NOT speak spanish please"#;
+
+const MIZOOK_CHANNEL: &str = "1525586466908930065";
+const MINECRAFT_CHANNEL: &str = "1525586466908930071";
+
+const URL: &str = "wss://gateway.fluxer.app/?v=1&encoding=json";
 
 #[tokio::main]
 async fn main() {
 	dotenv().ok();
 	TOKEN.set(env::var("TOKEN").expect("haha look who doesnt have the bot token")).unwrap();
 	HTTP.set(reqwest::Client::new()).unwrap();
-	const URL: &str = "wss://gateway.fluxer.app/?v=1&encoding=json";
+	LLM_HISTORY.get_or_init(|| Mutex::new(Vec::new()));
 	let (mut socket, _) = connect_async(URL).await.expect("failed to connect to fluxer");
 	let hello = socket.next().await.expect("gateway closed").expect("websocket error"); // hello
 	let hello_json: serde_json::Value = serde_json::from_str(&hello.to_string()).expect("invalid json");
@@ -48,12 +59,30 @@ async fn main() {
 				let event: serde_json::Value = serde_json::from_str(&message.to_string()).expect("ivalid json");
 				if event["op"] == 0 {
 					if event["t"] == "MESSAGE_CREATE" {
-						let content = event["d"]["content"].as_str().unwrap_or("").to_lowercase();
+						let content_raw = event["d"]["content"].as_str().unwrap_or("");
+						let content = &content_raw.to_lowercase();
 						let message_id = event["d"]["id"].as_str().unwrap();
 						let channel_id = event["d"]["channel_id"].as_str().expect("no channel id");
+						let user_id = event["author"]["id"].as_str().unwrap_or("unknown");
 						let username = event["d"]["author"]["global_name"].as_str().unwrap_or("unknown");
 						let author_bot = event["d"]["author"]["bot"].as_bool().unwrap_or(false);
-						if channel_id == MIZOOK_CHANNEL {
+						if channel_id == MIZOOK_CHANNEL && !author_bot {
+							if content.starts_with("/clear") {
+								LLM_HISTORY.get().unwrap().lock().unwrap().clear();
+								send_message(channel_id, "mizook has been re-lobotomized.").await;
+							} else if content.starts_with("/i") {
+							} else if !THINKINGZ.load(Ordering::Relaxed) {
+								THINKINGZ.store(true, Ordering::Relaxed);
+								match send2llm(username, user_id, content_raw).await {
+									Ok(reply) if reply.trim() == "!ignore" => {println!("mizook left u on read");}
+									Ok(reply) => {send_message(channel_id, &reply).await;}
+									Err(error) => {
+										println!("llm error: {error}");
+										send_message(channel_id, "wtf did u do to make the llm return a fucking error").await;
+									}
+								}
+								THINKINGZ.store(false, Ordering::Relaxed);
+							}
 						} else if channel_id == MINECRAFT_CHANNEL && !author_bot {
 							if content.starts_with("/start") {
 								println!("command used in #minecraft: /start");
@@ -143,4 +172,42 @@ async fn mc2fluxer_thingy(Json(body): Json<serde_json::Value>) {
 	let message = format!("<{player}> {message} :3");
 	send_message(MINECRAFT_CHANNEL, &message).await;
 	//println!("failed forwarding msg from mc2fluxer: ");
+}
+async fn send2llm(username: &str, user_id: &str, content: &str) -> Result<String, String> {
+	let client = HTTP.get().unwrap();
+	let user_content = format!(
+		"<user name=\"{username}\" id=\"{user_id}\">\n{content}\n</user>"
+	);
+	let history = LLM_HISTORY.get().unwrap();
+	{
+		let mut history = history.lock().unwrap();
+		history.push(serde_json::json!({"role": "user", "content": user_content}));
+		if history.len() > MAX_HISTORY {
+			let remove = history.len() - MAX_HISTORY;
+			history.drain(..remove);
+		}
+	}
+	let history = history.lock().unwrap();
+	let mut messages = vec![serde_json::json!({"role": "system", "content": SYSPWOMPT})];
+	messages.extend(history.iter().cloned());
+	drop(history);
+	let payload = serde_json::json!({"model": MODEL, "messages": messages, "temperature": 0.67, "max_tokens": 1024, "stream": false});
+	println!("got llm inputz: {content}");
+	println!("forwarding llm inputz to {MODEL}");
+	let response = client.post(format!("{OLLAMA}/v1/chat/completions")).json(&payload).send().await.map_err(|e| e.to_string())?;
+	if !response.status().is_success() {
+		let status = response.status();
+		let text = response.text().await.unwrap_or_default();
+		return Err(format!("ollama error: {status} {text}"));
+	}
+	let data: serde_json::Value = response.json().await.map_err(|e| e.to_string())?;
+	let reply = data["choices"][0]["message"]["content"].as_str().or_else(|| data["message"]["content"].as_str()).or_else(|| data["response"].as_str()).unwrap_or("").to_string();
+	if reply.trim() == "!ignore" {return Ok("!ignore".to_string());}
+	let mut history = LLM_HISTORY.get().unwrap().lock().unwrap();
+	history.push(serde_json::json!({"role": "assistant","content": reply}));
+	if history.len() > MAX_HISTORY {
+		let remove = history.len() - MAX_HISTORY;
+		history.drain(..remove);
+	}
+	Ok(reply)
 }
