@@ -44,6 +44,7 @@ async fn main() {
 						let content = event["d"]["content"].as_str().unwrap_or("").to_lowercase();
 						let message_id = event["d"]["id"].as_str().unwrap();
 						let channel_id = event["d"]["channel_id"].as_str().expect("no channel id");
+						let username = event["d"]["author"]["username"].as_str().unwrap_or("unknown");
 						let author_bot = event["d"]["author"]["bot"].as_bool().unwrap_or(false);
 						if channel_id == MIZOOK_CHANNEL {
 						} else if channel_id == MINECRAFT_CHANNEL {
@@ -91,6 +92,12 @@ async fn main() {
 								let output = mcrcon(&["list"]).await.unwrap();
 								let players = output.split_once("online:").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
 								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
+							} else {
+								let fluxer2mc_msg = mcrcon(&["tellraw", "@a", &format!("<{username}> {message} :3")]).await;
+								match fluxer2mc_msg {
+									Ok(_output) => {}
+									Err(error) => {println!("failed forwarding msg from fluxer to minecraft: {error}");}
+								}
 							}
 						} else {
 							if !author_bot && content.contains("crazy") {send_message(channel_id, "crazy? i was crazy once. they locked me in a room, a rubber room, a rubber room with rats, and rats make me crazy.").await;}
