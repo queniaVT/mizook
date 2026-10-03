@@ -1,3 +1,4 @@
+use axum::{extract::Json, routing::post, Router};
 use dotenvy::dotenv;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
@@ -29,6 +30,11 @@ async fn main() {
 	let ready = socket.next().await.expect("gateway closed").expect("websocket error"); // ready
 	let ready_json: serde_json::Value = serde_json::from_str(&ready.to_string()).expect("invalid json");
 	let username = ready_json["d"]["user"]["username"].as_str().expect("username isnt a string");
+	let app = Router::new().route("/player-message", post(mc2fluxer_thingy));
+	tokio::spawn(async move {
+		let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
+		axum::serve(listener, app).await.unwrap();
+	});
 	println!("logged in as {username}");
 	loop {
 		tokio::select! {
@@ -44,7 +50,7 @@ async fn main() {
 						let content = event["d"]["content"].as_str().unwrap_or("").to_lowercase();
 						let message_id = event["d"]["id"].as_str().unwrap();
 						let channel_id = event["d"]["channel_id"].as_str().expect("no channel id");
-						let username = event["d"]["author"]["username"].as_str().unwrap_or("unknown");
+						let username = event["d"]["author"]["global_name"].as_str().unwrap_or("unknown");
 						let author_bot = event["d"]["author"]["bot"].as_bool().unwrap_or(false);
 						if channel_id == MIZOOK_CHANNEL {
 						} else if channel_id == MINECRAFT_CHANNEL {
@@ -129,4 +135,11 @@ async fn mcrcon(args: &[&str]) -> Result<String, String> {
 	let output = tokio::process::Command::new("/run/current-system/sw/bin/mcrcon").args(["-H", "localhost", "-P", "25585", "-p", "mcservurrpasswd"]).args(args).output().await.map_err(|e| e.to_string())?;
 	if !output.status.success() {return Err(String::from_utf8_lossy(&output.stderr).into_owned());}
 	Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+async fn mc2fluxer_thingy(Json(body): Json<serde_json::Value>) {
+	let player = body["player"].as_str().unwrap_or("unknown");
+	let content = body["content"].as_str().unwrap_or("");
+	let message = format!("<{player}> {content}");
+	send_message(MINECRAFT_CHANNEL, &message).await;
+	//println!("failed forwarding msg from mc2fluxer: ");
 }
