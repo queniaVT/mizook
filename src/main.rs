@@ -138,8 +138,8 @@ async fn mcrcon(args: &[&str]) -> Result<String, String> {
 }
 async fn mc2fluxer_thingy(Json(body): Json<serde_json::Value>) {
 	let player = body["player"].as_str().unwrap_or("unknown");
-	let content = body["content"].as_str().unwrap_or("");
-	let message = format!("<{player}> {content}");
+	let message = body["message"].as_str().unwrap_or("");
+	let message = format!("<{player}> {message}");
 	send_message(MINECRAFT_CHANNEL, &message).await;
 	//println!("failed forwarding msg from mc2fluxer: ");
 }
