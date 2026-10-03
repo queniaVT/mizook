@@ -34,6 +34,7 @@ async fn main() {
 	tokio::spawn(async move {
 		let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
 		axum::serve(listener, app).await.unwrap();
+		println!("started http server on port 3000");
 	});
 	println!("logged in as {username}");
 	loop {
@@ -53,7 +54,7 @@ async fn main() {
 						let username = event["d"]["author"]["global_name"].as_str().unwrap_or("unknown");
 						let author_bot = event["d"]["author"]["bot"].as_bool().unwrap_or(false);
 						if channel_id == MIZOOK_CHANNEL {
-						} else if channel_id == MINECRAFT_CHANNEL {
+						} else if channel_id == MINECRAFT_CHANNEL && !author_bot {
 							if content.starts_with("/start") {
 								println!("command used in #minecraft: /start");
 								let output = tokio::process::Command::new("/run/wrappers/bin/sudo").args(["/run/current-system/sw/bin/systemctl", "start", "mcservurr"]).output().await.expect("failed to run systemctl");
