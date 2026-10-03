@@ -34,8 +34,8 @@ async fn main() {
 	tokio::spawn(async move {
 		let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
 		axum::serve(listener, app).await.unwrap();
-		println!("started http server on port 3000");
 	});
+	println!("started http server on port 3000");
 	println!("logged in as {username}");
 	loop {
 		tokio::select! {
@@ -140,7 +140,7 @@ async fn mcrcon(args: &[&str]) -> Result<String, String> {
 async fn mc2fluxer_thingy(Json(body): Json<serde_json::Value>) {
 	let player = body["player"].as_str().unwrap_or("unknown");
 	let message = body["message"].as_str().unwrap_or("");
-	let message = format!("<{player}> {message}");
+	let message = format!("<{player}> {message} :3");
 	send_message(MINECRAFT_CHANNEL, &message).await;
 	//println!("failed forwarding msg from mc2fluxer: ");
 }
