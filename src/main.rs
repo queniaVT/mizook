@@ -73,6 +73,7 @@ async fn main() {
 							} else if content.starts_with("/i") {
 							} else if !THINKINGZ.load(Ordering::Relaxed) {
 								THINKINGZ.store(true, Ordering::Relaxed);
+								let tmpmsg = send_message(channel_id, "mizook is trying their best to think...").await;
 								match send2llm(username, user_id, content_raw).await {
 									Ok(reply) if reply.trim() == "!ignore" => {println!("mizook left u on read");}
 									Ok(reply) => {send_message(channel_id, &reply).await;}
@@ -81,6 +82,7 @@ async fn main() {
 										send_message(channel_id, "wtf did u do to make the llm return a fucking error").await;
 									}
 								}
+								if let Err(error) = delete_message(channel_id, tmpmsg["id"].as_str().unwrap()).await {println!("failed to delete thinking message: {error}");}
 								THINKINGZ.store(false, Ordering::Relaxed);
 							}
 						} else if channel_id == MINECRAFT_CHANNEL && !author_bot {
@@ -151,15 +153,22 @@ async fn main() {
 		}
 	}
 }
-async fn send_message(channel_id: &str, content: &str) {
+async fn send_message(channel_id: &str, content: &str) -> serde_json::Value {
 	let http = HTTP.get().unwrap();
 	let token = TOKEN.get().unwrap();
-	http.post(format!("https://api.fluxer.app/v1/channels/{channel_id}/messages")).header("Authorization", format!("Bot {token}")).json(&json!({"content": content})).send().await.expect("failed to send message");
+	http.post(format!("https://api.fluxer.app/v1/channels/{channel_id}/messages")).header("Authorization", format!("Bot {token}")).json(&json!({"content": content})).send().await.expect("failed to send message").json().await.expect("failed to parse message response")
 }
 async fn reply_message(channel_id: &str, message_id: &str, content: &str) {
 	let http = HTTP.get().unwrap();
 	let token = TOKEN.get().unwrap();
 	http.post(format!("https://api.fluxer.app/v1/channels/{channel_id}/messages")).header("Authorization", format!("Bot {token}")).json(&json!({"content": content, "message_reference": {"message_id": message_id}})).send().await.expect("failed to send reply");
+}
+async fn delete_message(channel_id: &str, message_id: &str) -> Result<(), reqwest::Error> {
+	let url = format!("https://api.fluxer.app/v1/channels/{channel_id}/messages/{message_id}");
+	let http = HTTP.get().unwrap();
+	let token = TOKEN.get().unwrap();
+	http.delete(&url).header("Authorization", format!("Bot {token}")).send().await?;
+	Ok(())
 }
 async fn mcrcon(args: &[&str]) -> Result<String, String> {
 	let output = tokio::process::Command::new("/run/current-system/sw/bin/mcrcon").args(["-H", "localhost", "-P", "25585", "-p", "mcservurrpasswd"]).args(args).output().await.map_err(|e| e.to_string())?;
@@ -175,9 +184,7 @@ async fn mc2fluxer_thingy(Json(body): Json<serde_json::Value>) {
 }
 async fn send2llm(username: &str, user_id: &str, content: &str) -> Result<String, String> {
 	let client = HTTP.get().unwrap();
-	let user_content = format!(
-		"<user name=\"{username}\" id=\"{user_id}\">\n{content}\n</user>"
-	);
+	let user_content = format!("<user name=\"{username}\" id=\"{user_id}\">\n{content}\n</user>");
 	let history = LLM_HISTORY.get().unwrap();
 	{
 		let mut history = history.lock().unwrap();
