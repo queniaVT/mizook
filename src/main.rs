@@ -12,6 +12,7 @@ static HTTP: OnceLock<reqwest::Client> = OnceLock::new();
 static TOKEN: OnceLock<String> = OnceLock::new();
 static LLM_HISTORY: OnceLock<Mutex<Vec<serde_json::Value>>> = OnceLock::new();
 pub static THINKINGZ: AtomicBool = AtomicBool::new(false);
+pub static STORE: OnceLock<Mutex<serde_json::Value>> = OnceLock::new();
 
 const OLLAMA: &str = "http://127.0.0.1:11435";
 const MODEL: &str = "qwen2.5:3b";
@@ -20,8 +21,41 @@ const SYSPWOMPT: &str = r#"You are mizook. mizook is a chaotic gremlin that live
 
 const MIZOOK_CHANNEL: &str = "1525586466908930065";
 const MINECRAFT_CHANNEL: &str = "1525586466908930071";
+const ROLES_CHANNEL: &str = "1525586466908930061";
 
+const BOT_ID: &str = "1525904443235639296";
 const URL: &str = "wss://gateway.fluxer.app/?v=1&encoding=json";
+pub const ROLE_MESSAGES: &[(&str, &[(&str, &str)])] = &[
+	(
+		"do you want to participate in the council and vote on server changes? (recommended) :3",
+		&[
+			("✅", "1525586466908930051"),
+		],
+	),
+	(
+		"do you wanna talk to mizook? :3",
+		&[
+			("✅", "1525586466908930050"),
+		],
+	),
+	(
+		"what games do you wanna discuss?\n<:minecraft:1526056839312052224> - minecraft\n<:tf2:1550212651701764096> - team fortress 2\nyou can suggest more games in the council :3",
+		&[
+			("<:minecraft:1526056839312052224>", "1525586466908930049"),
+			("<:tf2:1550212651701764096>", "1550212390270795776"),
+		],
+	),
+	(
+		"u can chooze ur labelz heer\n<:asexual:1551607788654833664> - asexual\n<:bisexual:1525588214352449536> - bisexual\n<:femboy:1525588214352449537> - femboy\n<:lesbian:1525588214352449538> - lesbian\n<:transgender:1525588214352449539> - transgender\nif ur label iznt heer u can suggest it in da council :3",
+		&[
+			("<:asexual:1551607788654833664>", "1551607606403928064"),
+			("<:bisexual:1525588214352449536>", "1525586466908930055"),
+			("<:femboy:1525588214352449537>", "1525586466908930054"),
+			("<:lesbian:1525588214352449538>", "1525586466908930053"),
+			("<:transgender:1525588214352449539>", "1525586466908930052"),
+		],
+	),
+];
 
 #[tokio::main]
 async fn main() {
@@ -29,6 +63,7 @@ async fn main() {
 	TOKEN.set(env::var("TOKEN").expect("haha look who doesnt have the bot token")).unwrap();
 	HTTP.set(reqwest::Client::new()).unwrap();
 	LLM_HISTORY.get_or_init(|| Mutex::new(Vec::new()));
+	STORE.get_or_init(|| Mutex::new(json!({})));
 	let (mut socket, _) = connect_async(URL).await.expect("failed to connect to fluxer");
 	let hello = socket.next().await.expect("gateway closed").expect("websocket error"); // hello
 	let hello_json: serde_json::Value = serde_json::from_str(&hello.to_string()).expect("invalid json");
@@ -41,6 +76,7 @@ async fn main() {
 	let ready = socket.next().await.expect("gateway closed").expect("websocket error"); // ready
 	let ready_json: serde_json::Value = serde_json::from_str(&ready.to_string()).expect("invalid json");
 	let username = ready_json["d"]["user"]["username"].as_str().expect("username isnt a string");
+	ensure_predefined_messages().await;
 	let app = Router::new().route("/player-message", post(mc2fluxer_thingy));
 	tokio::spawn(async move {
 		let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await.unwrap();
@@ -58,7 +94,11 @@ async fn main() {
 				let message = message.expect("gateway closed").expect("websocket error");
 				let event: serde_json::Value = serde_json::from_str(&message.to_string()).expect("ivalid json");
 				if event["op"] == 0 {
-					if event["t"] == "MESSAGE_CREATE" {
+					if event["t"] == "MESSAGE_REACTION_ADD" {
+						handle_role_change(&event["d"], true).await;
+					} else if event["t"] == "MESSAGE_REACTION_REMOVE" {
+						handle_role_change(&event["d"], false).await;
+					} else if event["t"] == "MESSAGE_CREATE" {
 						let content_raw = event["d"]["content"].as_str().unwrap_or("");
 						let content = &content_raw.to_lowercase();
 						let message_id = event["d"]["id"].as_str().unwrap();
@@ -170,6 +210,22 @@ async fn delete_message(channel_id: &str, message_id: &str) -> Result<(), reqwes
 	http.delete(&url).header("Authorization", format!("Bot {token}")).send().await?;
 	Ok(())
 }
+async fn get_messages(channel_id: &str) -> Result<serde_json::Value, reqwest::Error> {
+	let http = HTTP.get().unwrap();
+	let token = TOKEN.get().unwrap();
+	http.get(format!("https://api.fluxer.app/v1/channels/{channel_id}/messages?limit=50")).header("Authorization", format!("Bot {token}")).send().await?.json().await
+}
+async fn add_reaction(channel_id: &str, message_id: &str, emoji: &str) -> Result<(), reqwest::Error> {
+	let http = HTTP.get().unwrap();
+	let token = TOKEN.get().unwrap();
+	let emoji = if let Some(emoji) = emoji.strip_prefix("<:").and_then(|e| e.strip_suffix(">")) {emoji}
+	else if let Some(emoji) = emoji.strip_prefix("<a:").and_then(|e| e.strip_suffix(">")) {emoji}
+	else {emoji};
+	let emoji = urlencoding::encode(emoji);
+	let response = http.put(format!("https://api.fluxer.app/v1/channels/{channel_id}/messages/{message_id}/reactions/{emoji}/@me")).header("Authorization", format!("Bot {token}")).send().await?;
+	if !response.status().is_success() {println!("reaction {emoji}: {} {}", response.status(), response.text().await.unwrap_or_default());}
+	Ok(())
+}
 async fn mcrcon(args: &[&str]) -> Result<String, String> {
 	let output = tokio::process::Command::new("/run/current-system/sw/bin/mcrcon").args(["-H", "localhost", "-P", "25585", "-p", "mcservurrpasswd"]).args(args).output().await.map_err(|e| e.to_string())?;
 	if !output.status.success() {return Err(String::from_utf8_lossy(&output.stderr).into_owned());}
@@ -181,6 +237,64 @@ async fn mc2fluxer_thingy(Json(body): Json<serde_json::Value>) {
 	let message = format!("<{player}> {message} :3");
 	send_message(MINECRAFT_CHANNEL, &message).await;
 	//println!("failed forwarding msg from mc2fluxer: ");
+}
+async fn ensure_predefined_messages() {
+	let messages = match get_messages(ROLES_CHANNEL).await {
+		Ok(messages) => messages,
+		Err(error) => {
+			println!("failed to fetch role messages: {error}");
+			return;
+		}
+	};
+	let messages: &[serde_json::Value] = messages.as_array().map(Vec::as_slice).unwrap_or(&[]);
+	for (content, mappings) in ROLE_MESSAGES {
+		let existing = messages.iter().find(|message| {message["author"]["id"].as_str() == Some(BOT_ID) && message["content"].as_str() == Some(*content)});
+		let message = match existing {
+			Some(message) => message.clone(),
+			None => {
+				let message = send_message(ROLES_CHANNEL, content).await;
+				for (emoji, _) in *mappings {
+					if let Err(error) = add_reaction(
+						ROLES_CHANNEL,
+						message["id"].as_str().unwrap(),
+						emoji,
+					).await {
+						println!("react failed {emoji}: {error}");
+					}
+				}
+				message
+			}
+		};
+		let message_id = message["id"].as_str().unwrap();
+		let mut store = STORE.get().unwrap().lock().unwrap();
+		store["null"][message_id] = json!({});
+		for (emoji, role_id) in *mappings {
+			store["null"][message_id][*emoji] = json!(role_id);
+		}
+	}
+}
+async fn handle_role_change(data: &serde_json::Value, add: bool) {
+	if data["user_id"].as_str() == Some(BOT_ID) {return;}
+	let message_id = match data["message_id"].as_str() {Some(id) => id, None => return,};
+	let user_id = match data["user_id"].as_str() {Some(id) => id, None => return,};
+	let emoji = &data["emoji"];
+	let key = if let Some(id) = emoji["id"].as_str() {format!("<:{}:{}>", emoji["name"].as_str().unwrap_or(""), id)}
+	else {match emoji["name"].as_str() {Some(name) => name.to_string(), None => return}};
+	let role_id = {
+		let store = STORE.get().unwrap().lock().unwrap();
+		store["null"][message_id][&key].as_str().map(str::to_string)
+	};
+	let role_id = match role_id {Some(id) => id, None => return};
+	let guild_id = match data["guild_id"].as_str() {Some(id) => id,None => return};
+	if let Err(error) = change_role(guild_id, user_id, &role_id, add).await {println!("role change error: {error}");}
+}
+async fn change_role(guild_id: &str, user_id: &str, role_id: &str, add: bool) -> Result<(), reqwest::Error> {
+	let http = HTTP.get().unwrap();
+	let token = TOKEN.get().unwrap();
+	let url = format!("https://api.fluxer.app/v1/guilds/{guild_id}/members/{user_id}/roles/{role_id}");
+	if add {http.put(url).header("Authorization", format!("Bot {token}")).send().await?;}
+	else {http.delete(url).header("Authorization", format!("Bot {token}")).send().await?;}
+	Ok(())
 }
 async fn send2llm(username: &str, user_id: &str, content: &str) -> Result<String, String> {
 	let client = HTTP.get().unwrap();
@@ -199,7 +313,7 @@ async fn send2llm(username: &str, user_id: &str, content: &str) -> Result<String
 	messages.extend(history.iter().cloned());
 	drop(history);
 	let payload = serde_json::json!({"model": MODEL, "messages": messages, "temperature": 0.67, "max_tokens": 1024, "stream": false});
-	println!("got llm inputz: {content}");
+	println!("got llm inputz: {user_content}");
 	println!("forwarding llm inputz to {MODEL}");
 	let response = client.post(format!("{OLLAMA}/v1/chat/completions")).json(&payload).send().await.map_err(|e| e.to_string())?;
 	if !response.status().is_success() {
