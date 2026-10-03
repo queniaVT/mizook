@@ -96,7 +96,7 @@ async fn main() {
 								let message = format!("<{username}> {content} :3");
 								let json = serde_json::json!({"text": message});
 								println!("forwarding fluxer2mc: {json}");
-								let fluxer2mc_msg = mcrcon(&["tellraw", "@a", &json.to_string()]).await;
+								let fluxer2mc_msg = mcrcon(&[&format!("tellraw @a {}", json)]).await;
 								match fluxer2mc_msg {
 									Ok(output) => println!("mcrcon succeeded: {output}"),
 									Err(error) => println!("failed forwarding msg from fluxer to minecraft: {error}"),
