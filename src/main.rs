@@ -88,8 +88,9 @@ async fn main() {
 								println!("command used in #minecraft: /status");
 								let status = tokio::process::Command::new("/run/wrappers/bin/sudo").args(["/run/current-system/sw/bin/systemctl", "is-active", "mcservurr"]).output().await.expect("failed to run systemctl");
 								let status = String::from_utf8_lossy(&status.stdout).trim().to_string();
+								let output = mcrcon(&["list"]).await.unwrap();
 								let players = output.split_once("online:").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
-								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{}", players.trim())).await;
+								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
 							}
 						} else {
 							if !author_bot && content.contains("crazy") {send_message(channel_id, "crazy? i was crazy once. they locked me in a room, a rubber room, a rubber room with rats, and rats make me crazy.").await;}
