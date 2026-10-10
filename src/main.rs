@@ -174,7 +174,7 @@ async fn main() {
 								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
 							} else {
 								let attachments = filenames.join(", ");
-								let message = format!("<{username}> {content} ({attachments}) :3");
+								let message = if attachments.is_empty() {format!("<{username}> {content} :3")} else {format!("<{username}> {content} ({attachments}) :3")};
 								let json = serde_json::json!({"text": message});
 								println!("forwarding fluxer2mc: {json}");
 								let fluxer2mc_msg = mcrcon(&[&format!("tellraw @a {}", json)]).await;
