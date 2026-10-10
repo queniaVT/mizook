@@ -20,6 +20,7 @@ const MAX_HISTORY: usize = 15;
 const SYSPWOMPT: &str = r#"You are mizook. mizook is a chaotic gremlin that lives on fluxer (free and open source version of discord) and tries to be very silly and funny and speaks in lolcat. You can choose to not respond by outputting exactly "!ignore" and nothing else, do NOT excessively ghost people though. Do NOT roleplay as other people, you are only mizook and nobody else. do NOT speak spanish please"#;
 
 const MIZOOK_CHANNEL: &str = "1525586466908930065";
+const FACTORIO_CHANNEL: &str = "1557830499697700864";
 const MINECRAFT_CHANNEL: &str = "1525586466908930071";
 const ROLES_CHANNEL: &str = "1525586466908930061";
 
@@ -135,7 +136,7 @@ async fn main() {
 								else {reply_message(channel_id, message_id, "something got fucked up").await;}
 							} else if content.starts_with("/restart") {
 								println!("command used in #minecraft: /restart");
-								let output = mcrcon(&["list"]).await;
+								let output = mcrcon(&["list"], 25585).await;
 								match output {
 									Ok(output) => {
 										if output.trim().starts_with("There are 0") {
@@ -151,7 +152,7 @@ async fn main() {
 								}
 							} else if content.starts_with("/stop") {
 								println!("command used in #minecraft: /stop");
-								let output = mcrcon(&["list"]).await;
+								let output = mcrcon(&["list"], 25585).await;
 								match output {
 									Ok(output) => {
 										if output.trim().starts_with("There are 0") {
@@ -169,7 +170,7 @@ async fn main() {
 								println!("command used in #minecraft: /status");
 								let status = tokio::process::Command::new("/run/wrappers/bin/sudo").args(["/run/current-system/sw/bin/systemctl", "is-active", "mcservurr"]).output().await.expect("failed to run systemctl");
 								let status = String::from_utf8_lossy(&status.stdout).trim().to_string();
-								let output = mcrcon(&["list"]).await.unwrap();
+								let output = mcrcon(&["list"], 25585).await.unwrap();
 								let players = output.split_once("online:").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
 								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
 							} else {
@@ -177,12 +178,22 @@ async fn main() {
 								let message = if attachments.is_empty() {format!("<{username}> {content} :3")} else {format!("<{username}> {content} ({attachments}) :3")};
 								let json = serde_json::json!({"text": message});
 								println!("forwarding fluxer2mc: {json}");
-								let fluxer2mc_msg = mcrcon(&[&format!("tellraw @a {}", json)]).await;
+								let fluxer2mc_msg = mcrcon(&[&format!("tellraw @a {}", json)], 25585).await;
 								match fluxer2mc_msg {
 									Ok(output) => println!("successfully forwarded: {output}"),
 									Err(error) => println!("failed to forward: {error}"),
 								}
 							}
+						} else if channel_id == FACTORIO_CHANNEL && !author_bot {
+								let attachments = filenames.join(", ");
+								let message = if attachments.is_empty() {format!("{username}: {content} :3")} else {format!("{username}: {content} ({attachments}) :3")};
+								let json = serde_json::json!({"text": message});
+								println!("forwarding fluxer2factorio: {json}");
+								let fluxer2factorio_msg = mcrcon(&[&format!("/say {}", json)], 42067).await;
+								match fluxer2factorio_msg {
+									Ok(output) => println!("successfully forwarded: {output}"),
+									Err(error) => println!("failed to forward: {error}"),
+								}
 						} else {
 							if !author_bot && content.contains("crazy") {send_message(channel_id, "crazy? i was crazy once. they locked me in a room, a rubber room, a rubber room with rats, and rats make me crazy.").await;}
 							if !author_bot && content.contains("job") {send_message(channel_id, "p..p…lease… c-censor.. *sighs* … ahem!!… a-… *starts crying* ….. *sniff* j-…. J….. j… ARGH! *screams in agony* i-i… cant!… … *sighs*…. f-fine!! j-j-j-j…. J\\*B! *starts crying and faints while having seizures* oh! thats not... men pmo! 💜 i choose the ✨BEAR✨ sorry, but zahide won this trend! 💜 im just a girl 🎀 hope this helps! ✌️🙏 user25526345104761 literally predicted all ts🙏😭 IS THAT HYPERPIGMENTATION💜💜🙏 WHO IS THIS DIVAAAAA💜🎀💜🙏💜🙏 DID SHE SURVIVE💜💜💜🎀🙏🙏😭 MAMA A GIRL BEHIND YOU🙏💜🎀😭 TUNG TUNG TUNG SAHUR💜💜🎀 work, employment, bills, j\\*b, this but not ts, walk, life, grass, tax, toothbrush, soap, employ, employed, br\\*sh, fresh, hygienic, hired, labor, wage, clean, shampoo, bathe, wipe, cleansed, sponge, deodorant, contract, exercise, healthy, hire, hiring, career, chores, organized, old spice, toothpaste, dishes, vegetables, fresh air, working, dove those who know:💀💀💀💀💀💀💀💀💀💀💀BOIII TS IS SO TUFF😂🫱🫱🫱THE FOG IS COMING😂😂😂HELP ITS RIPPING OFF MY SKIN😂😂😂 wait, is this a MANGO MANGO😈 reference 😱😱 chat! this is a MANGO MANGO😈 reference 🤣🤣🤣. boi, you won the Internet meme of the day 😂🫱. only the Balkans with noradrenaline will understand THOSE WHO KNOW💀💀💀💀 MANGO MANGO MANGO🥭 🥭 🥭TUNG TUNG TUNG SAHUR BOIII😂😂😂TS IS SO TUFF BOIII🥶🥶🥶🥶🔥🔥🔥🥵...user25526345104761.").await;}
@@ -229,8 +240,8 @@ async fn add_reaction(channel_id: &str, message_id: &str, emoji: &str) -> Result
 	if !response.status().is_success() {println!("reaction {emoji}: {} {}", response.status(), response.text().await.unwrap_or_default());}
 	Ok(())
 }
-async fn mcrcon(args: &[&str]) -> Result<String, String> {
-	let output = tokio::process::Command::new("/run/current-system/sw/bin/mcrcon").args(["-H", "localhost", "-P", "25585", "-p", "mcservurrpasswd"]).args(args).output().await.map_err(|e| e.to_string())?;
+async fn mcrcon(args: &[&str], port: i32) -> Result<String, String> {
+	let output = tokio::process::Command::new("/run/current-system/sw/bin/mcrcon").args(["-H", "localhost", "-P", &format!("{port}"), "-p", "mcservurrpasswd"]).args(args).output().await.map_err(|e| e.to_string())?;
 	if !output.status.success() {return Err(String::from_utf8_lossy(&output.stderr).into_owned());}
 	Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
