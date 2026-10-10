@@ -93,13 +93,12 @@ async fn main() {
 			}
 			message = socket.next() => {
 				let message = message.expect("gateway closed").expect("websocket error");
+				//println!("{message}");
 				let event: serde_json::Value = serde_json::from_str(&message.to_string()).expect("ivalid json");
 				if event["op"] == 0 {
-					if event["t"] == "MESSAGE_REACTION_ADD" {
-						handle_role_change(&event["d"], true).await;
-					} else if event["t"] == "MESSAGE_REACTION_REMOVE" {
-						handle_role_change(&event["d"], false).await;
-					} else if event["t"] == "MESSAGE_CREATE" {
+					if event["t"] == "MESSAGE_REACTION_ADD" {handle_role_change(&event["d"], true).await;}
+					else if event["t"] == "MESSAGE_REACTION_REMOVE" {handle_role_change(&event["d"], false).await;}
+					else if event["t"] == "MESSAGE_CREATE" {
 						let content_raw = event["d"]["content"].as_str().unwrap_or("");
 						let content = &content_raw.to_lowercase();
 						let message_id = event["d"]["id"].as_str().unwrap();
@@ -107,6 +106,8 @@ async fn main() {
 						let user_id = event["author"]["id"].as_str().unwrap_or("unknown");
 						let username = event["d"]["author"]["global_name"].as_str().unwrap_or("unknown");
 						let author_bot = event["d"]["author"]["bot"].as_bool().unwrap_or(false);
+						let mut filenames = Vec::new();
+						if let Some(attachments) = event["d"]["attachments"].as_array() {for attachment in attachments {filenames.push(attachment["filename"].as_str().unwrap_or("").to_string());}}
 						if channel_id == MIZOOK_CHANNEL && !author_bot {
 							if content.starts_with("/clear") {
 								LLM_HISTORY.get().unwrap().lock().unwrap().clear();
@@ -172,13 +173,14 @@ async fn main() {
 								let players = output.split_once("online:").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
 								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
 							} else {
-								let message = format!("<{username}> {content} :3");
+								let attachments = filenames.join(", ");
+								let message = format!("<{username}> {content} ({attachments}) :3");
 								let json = serde_json::json!({"text": message});
 								println!("forwarding fluxer2mc: {json}");
 								let fluxer2mc_msg = mcrcon(&[&format!("tellraw @a {}", json)]).await;
 								match fluxer2mc_msg {
-									Ok(output) => println!("mcrcon succeeded: {output}"),
-									Err(error) => println!("failed forwarding msg from fluxer to minecraft: {error}"),
+									Ok(output) => println!("successfully forwarded: {output}"),
+									Err(error) => println!("failed to forward: {error}"),
 								}
 							}
 						} else {
