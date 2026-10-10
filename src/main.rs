@@ -187,9 +187,8 @@ async fn main() {
 						} else if channel_id == FACTORIO_CHANNEL && !author_bot {
 								let attachments = filenames.join(", ");
 								let message = if attachments.is_empty() {format!("{username}: {content} :3")} else {format!("{username}: {content} ({attachments}) :3")};
-								let json = serde_json::json!({"text": message});
-								println!("forwarding fluxer2factorio: {json}");
-								let fluxer2factorio_msg = mcrcon(&[&format!("/s {}", json)], 42067).await;
+								println!("forwarding fluxer2factorio: {message}");
+								let fluxer2factorio_msg = mcrcon(&[&format!("/c game.print({message})")], 42067).await;
 								match fluxer2factorio_msg {
 									Ok(output) => println!("successfully forwarded: {output}"),
 									Err(error) => println!("failed to forward: {error}"),
