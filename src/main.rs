@@ -189,7 +189,7 @@ async fn main() {
 								let message = if attachments.is_empty() {format!("{username}: {content} :3")} else {format!("{username}: {content} ({attachments}) :3")};
 								let json = serde_json::json!({"text": message});
 								println!("forwarding fluxer2factorio: {json}");
-								let fluxer2factorio_msg = mcrcon(&[&format!("/say {}", json)], 42067).await;
+								let fluxer2factorio_msg = mcrcon(&[&format!("/s {}", json)], 42067).await;
 								match fluxer2factorio_msg {
 									Ok(output) => println!("successfully forwarded: {output}"),
 									Err(error) => println!("failed to forward: {error}"),
