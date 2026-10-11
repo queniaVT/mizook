@@ -85,6 +85,7 @@ async fn main() {
 		axum::serve(listener, app).await.unwrap();
 	});
 	println!("started http server on port 3000");
+	tokio::spawn(async {if let Err(error) = factorio2fluxer().await {eprintln!("Factorio UDP listener failed: {error}");}});
 	println!("logged in as {username}");
 	loop {
 		tokio::select! {
@@ -248,8 +249,25 @@ async fn mc2fluxer_thingy(Json(body): Json<serde_json::Value>) {
 	let player = body["player"].as_str().unwrap_or("unknown");
 	let message = body["message"].as_str().unwrap_or("");
 	let message = format!("<{player}> {message} :3");
+	println!("forwarding mc2fluxer: {}", message);
 	send_message(MINECRAFT_CHANNEL, &message).await;
 	//println!("failed forwarding msg from mc2fluxer: ");
+}
+async fn factorio2fluxer() -> Result<(), Box<dyn std::error::Error>> {
+	let socket = tokio::net::UdpSocket::bind("127.0.0.1:42069").await?;
+	println!("listening for factorio udp packets on port 42069");
+	let mut buf = [0u8; 4096];
+	loop {
+		let (len, _) = socket.recv_from(&mut buf).await?;
+		let data: serde_json::Value = match serde_json::from_slice(&buf[..len]) {
+			Ok(data) => data,
+			Err(error) => {println!("invalid Factorio packet: {error}"); continue;}
+		};
+		let user = data["usr"].as_str().unwrap_or("unknown");
+		let message = data["msg"].as_str().unwrap_or("");
+		println!("forwarding factorio2fluxer: {user}: {message} :3");
+		send_message(FACTORIO_CHANNEL, &format!("{user}: {message} :3")).await;
+	}
 }
 async fn ensure_predefined_messages() {
 	let messages = match get_messages(ROLES_CHANNEL).await {
