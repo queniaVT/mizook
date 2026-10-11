@@ -188,7 +188,7 @@ async fn main() {
 								let attachments = filenames.join(", ");
 								let message = if attachments.is_empty() {format!("{username}: {content} :3")} else {format!("{username}: {content} ({attachments}) :3")};
 								println!("forwarding fluxer2factorio: {message}");
-								let fluxer2factorio_msg = mcrcon(&[&format!("/c game.print({message})")], 42067).await;
+								let fluxer2factorio_msg = mcrcon(&[&format!("/c game.print('{message}')")], 42067).await;
 								match fluxer2factorio_msg {
 									Ok(output) => println!("successfully forwarded: {output}"),
 									Err(error) => println!("failed to forward: {error}"),
