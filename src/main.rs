@@ -191,7 +191,8 @@ async fn main() {
 								let status = tokio::process::Command::new("/run/wrappers/bin/sudo").args(["/run/current-system/sw/bin/systemctl", "is-active", "factorio"]).output().await.expect("failed to run systemctl");
 								let status = String::from_utf8_lossy(&status.stdout).trim().to_string();
 								let output = mcrcon(&["/p o"], 42067).await.unwrap();
-								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{output}")).await;
+								let players = output.split_once("):").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
+								reply_message(channel_id, message_id, &format!("{status}\n{players}")).await;
 							} else {
 								let attachments = filenames.join(", ");
 								let message = if attachments.is_empty() {format!("{username}: {content_raw} :3")} else {format!("{username}: {content_raw} ({attachments}) :3")};
