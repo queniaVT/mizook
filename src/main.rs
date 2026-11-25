@@ -192,7 +192,7 @@ async fn main() {
 								let status = String::from_utf8_lossy(&status.stdout).trim().to_string();
 								let output = mcrcon(&["/p o"], 42067).await.unwrap();
 								let players = output.split_once("):").map(|(_, players)| players.replace("\x1b[0m", "").trim().replace(", ", "\n")).unwrap_or_default();
-								reply_message(channel_id, message_id, &format!("{status}\n{players}")).await;
+								reply_message(channel_id, message_id, &format!("{status}\nplayers online:\n{players}")).await;
 							} else {
 								let attachments = filenames.join(", ");
 								let message = if attachments.is_empty() {format!("{username}: {content_raw} :3")} else {format!("{username}: {content_raw} ({attachments}) :3")};
